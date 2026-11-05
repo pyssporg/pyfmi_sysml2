@@ -1,0 +1,9 @@
+sha256 ad826bfff00415851e4a9f135eca40dd31530427335e7b5023af9d85201f7b63
+mode   size timestamp           name
+0755     65 2000-01-01T00:00:00 binaries/linux64/Tank.so
+0644     17 2000-01-01T00:00:00 documentation/reference.txt
+0644    838 2000-01-01T00:00:00 modelDescription.xml
+0644      8 2000-01-01T00:00:00 resources/data/a.csv
+0644      4 2000-01-01T00:00:00 resources/data/nested/b.csv
+0644     14 2000-01-01T00:00:00 resources/params.json
+0644     13 2000-01-01T00:00:00 sources/tank.h

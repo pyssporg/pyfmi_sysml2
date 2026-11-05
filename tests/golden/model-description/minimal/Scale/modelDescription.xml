@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fmiModelDescription fmiVersion="2.0" modelName="Root.Scale" guid="{1cd5dff9-41fe-5fdf-abd6-fe39bc507661}" generationTool="pyfmi_sysml2 tooling" generationDateAndTime="2026-01-01T00:00:00Z" variableNamingConvention="structured">
+  <CoSimulation modelIdentifier="Scale" />
+  <ModelVariables>
+    <ScalarVariable name="gain" valueReference="0" causality="parameter" variability="fixed">
+      <Real start="2" />
+    </ScalarVariable>
+    <ScalarVariable name="u.value" valueReference="1" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="y.value" valueReference="2" causality="output">
+      <Real />
+    </ScalarVariable>
+  </ModelVariables>
+  <ModelStructure>
+    <Outputs>
+      <Unknown index="3" />
+    </Outputs>
+    <InitialUnknowns>
+      <Unknown index="3" />
+    </InitialUnknowns>
+  </ModelStructure>
+</fmiModelDescription>

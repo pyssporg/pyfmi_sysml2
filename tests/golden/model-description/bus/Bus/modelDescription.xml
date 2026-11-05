@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fmiModelDescription fmiVersion="2.0" modelName="BusComposition.Bus" guid="{40917e22-10b5-5f7c-b93d-8e8912196dc2}" generationTool="pyfmi_sysml2 tooling" generationDateAndTime="2026-01-01T00:00:00Z" variableNamingConvention="structured">
+  <CoSimulation modelIdentifier="Bus" />
+  <ModelVariables>
+    <ScalarVariable name="actuation.channel_a" valueReference="0" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="actuation.channel_b" valueReference="1" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="actuation.channel_c" valueReference="2" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="orientation_in.roll" valueReference="3" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="orientation_in.pitch" valueReference="4" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="orientation_in.yaw" valueReference="5" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="position_in.x" valueReference="6" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="position_in.y" valueReference="7" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="position_in.z" valueReference="8" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="shared.roll" valueReference="9" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="shared.pitch" valueReference="10" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="shared.yaw" valueReference="11" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="orientation_out.roll" valueReference="12" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="orientation_out.pitch" valueReference="13" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="orientation_out.yaw" valueReference="14" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="position_out.x" valueReference="15" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="position_out.y" valueReference="16" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="position_out.z" valueReference="17" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="status.speed" valueReference="18" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="status.health" valueReference="19" causality="output">
+      <Integer />
+    </ScalarVariable>
+  </ModelVariables>
+  <ModelStructure>
+    <Outputs>
+      <Unknown index="13" />
+      <Unknown index="14" />
+      <Unknown index="15" />
+      <Unknown index="16" />
+      <Unknown index="17" />
+      <Unknown index="18" />
+      <Unknown index="19" />
+      <Unknown index="20" />
+    </Outputs>
+    <InitialUnknowns>
+      <Unknown index="13" />
+      <Unknown index="14" />
+      <Unknown index="15" />
+      <Unknown index="16" />
+      <Unknown index="17" />
+      <Unknown index="18" />
+      <Unknown index="19" />
+      <Unknown index="20" />
+    </InitialUnknowns>
+  </ModelStructure>
+</fmiModelDescription>

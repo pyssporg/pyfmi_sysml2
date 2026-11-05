@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fmiModelDescription fmiVersion="2.0" modelName="ControllerComposition.Controller" guid="{64044cfb-9f40-5998-99f1-6652e4828def}" generationTool="pyfmi_sysml2 tooling" generationDateAndTime="2026-01-01T00:00:00Z" variableNamingConvention="structured">
+  <CoSimulation modelIdentifier="Controller" />
+  <ModelVariables>
+    <ScalarVariable name="gains[0]" valueReference="0" causality="parameter" variability="fixed">
+      <Real start="1" />
+    </ScalarVariable>
+    <ScalarVariable name="gains[1]" valueReference="1" causality="parameter" variability="fixed">
+      <Real start="2.5" />
+    </ScalarVariable>
+    <ScalarVariable name="label" valueReference="2" causality="parameter" variability="fixed">
+      <String start="nominal" />
+    </ScalarVariable>
+    <ScalarVariable name="command.manual" valueReference="3" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="command.auto" valueReference="4" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="command.mode" valueReference="5" causality="input">
+      <Integer />
+    </ScalarVariable>
+    <ScalarVariable name="throttle.demand" valueReference="6" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="throttle.enabled" valueReference="7" causality="output">
+      <Boolean />
+    </ScalarVariable>
+    <ScalarVariable name="status.code" valueReference="8" causality="output">
+      <Integer />
+    </ScalarVariable>
+  </ModelVariables>
+  <ModelStructure>
+    <Outputs>
+      <Unknown index="7" />
+      <Unknown index="8" />
+      <Unknown index="9" />
+    </Outputs>
+    <InitialUnknowns>
+      <Unknown index="7" />
+      <Unknown index="8" />
+      <Unknown index="9" />
+    </InitialUnknowns>
+  </ModelStructure>
+</fmiModelDescription>

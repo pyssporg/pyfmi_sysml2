@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fmiModelDescription fmiVersion="2.0" modelName="SensorComposition.Tank" guid="{25dea124-0dbb-5ba3-b000-54cbbd00f846}" generationTool="pyfmi_sysml2 tooling" generationDateAndTime="2026-01-01T00:00:00Z" variableNamingConvention="structured">
+  <CoSimulation modelIdentifier="Tank" />
+  <ModelVariables>
+    <ScalarVariable name="capacity" valueReference="0" causality="parameter" variability="fixed">
+      <Real start="3160" />
+    </ScalarVariable>
+    <ScalarVariable name="reserve" valueReference="1" causality="parameter" variability="fixed">
+      <Real start="0.08" />
+    </ScalarVariable>
+    <ScalarVariable name="supply.rate" valueReference="2" causality="input">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="level.remaining" valueReference="3" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="level.fraction" valueReference="4" causality="output">
+      <Real />
+    </ScalarVariable>
+    <ScalarVariable name="level.empty" valueReference="5" causality="output">
+      <Boolean />
+    </ScalarVariable>
+  </ModelVariables>
+  <ModelStructure>
+    <Outputs>
+      <Unknown index="4" />
+      <Unknown index="5" />
+      <Unknown index="6" />
+    </Outputs>
+    <InitialUnknowns>
+      <Unknown index="4" />
+      <Unknown index="5" />
+      <Unknown index="6" />
+    </InitialUnknowns>
+  </ModelStructure>
+</fmiModelDescription>
