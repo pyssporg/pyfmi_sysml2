@@ -41,6 +41,14 @@ unit; several marked definitions require `composition=` and are refused by
 name. When none is marked, it picks the part definition that has parts and is
 not used as a part elsewhere; several such roots also require `composition=`.
 
+The namespace is package-scoped: a definition of the architecture's own package
+is stored under its bare name and a definition of any other package under
+`<package>::<name>`, while `Definition.name` stays bare everywhere. Root
+selection compares stored keys on both sides — `Architecture.stored_key()` for
+the resolved usage and for the candidate — so a part definition supplied by a
+second load root that the composition uses is not itself a composition root. The
+qualifier never reaches an artifact: names are bare at every output.
+
 `export_identity()` owns the naming rule for the selected unit: a container
 root names a component `<system>.<component>`, while a direct FMU model uses
 the bare definition name. The modelDescription and the guid both read that one

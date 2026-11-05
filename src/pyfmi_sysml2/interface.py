@@ -376,11 +376,12 @@ def resolve_system(
         for usage in definition.parts.values():
             resolved = architecture.resolve_part(usage)
             if resolved is not None:
-                used.add(resolved.name)
+                used.add(architecture.stored_key(resolved))
     roots = [
         definition
-        for name, definition in architecture.part_definitions.items()
-        if definition.parts and name not in used
+        for definition in architecture.part_definitions.values()
+        if definition.parts
+        and architecture.stored_key(definition) not in used
     ]
     if len(roots) != 1:
         names = ", ".join(sorted(definition.name for definition in roots))

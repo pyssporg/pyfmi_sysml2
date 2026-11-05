@@ -15,6 +15,11 @@ One `.sysml` file per directory, named after the directory, so
 `conftest.fixture_path(subject, f"{subject}.sysml")` always resolves. Goldens
 mirror the names: `tests/golden/<artifact>/<subject>/`.
 
+A fixture that needs more than one load root puts the included package in a
+subdirectory that follows the same rule (`packages/support/support.sysml`):
+`packages.sysml` stays the primary root the convention points at, and the
+included root is one more directory passed to `pycps_sysml2.load`.
+
 | Subject | Purpose | Variables |
 | --- | --- | --- |
 | `minimal` | the floor: 1 parameter, 1 input, 1 output, one shared payload | 3 |
@@ -22,6 +27,7 @@ mirror the names: `tests/golden/<artifact>/<subject>/`.
 | `controller` | a `Real[2]` list parameter and a `String` parameter | 9 |
 | `bus` | no parameters, seven ports, an `inout` port, reused payloads | 20 |
 | `generator` | a direct `:> FmuModel` definition with no container root | 3 |
+| `packages` | a two-root load: an included part definition with parts, and one bare name in both packages | 3 |
 
 ## Naming rule
 

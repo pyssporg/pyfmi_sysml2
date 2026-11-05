@@ -2,7 +2,7 @@
 id: TEST-003
 type: test
 title: Oracles, fixtures, and goldens
-summary: gcc and g++ syntax-check the headers, omc checkModel proves the Modelica package, and five shared fixtures carry case records and byte-compared goldens.
+summary: gcc and g++ syntax-check the headers, omc checkModel proves the Modelica package, and six shared fixtures carry case records and byte-compared goldens.
 date: 2026-11-05
 status: current
 ---
@@ -27,7 +27,10 @@ architectures the goldens are built from:
 - `sensor` — String and Boolean fields, list expansion;
 - `controller` — parameters, `inout` and mixed directions, array parameters;
 - `bus` — a second composition shape and shared port definitions;
-- `generator` — a direct `:> FmuModel` definition with no container root.
+- `generator` — a direct `:> FmuModel` definition with no container root;
+- `packages` — a two-root load where an included part definition with parts is
+  used by the primary composition, and one bare name exists in both packages
+  (asserted by `tests/test_package_roots.py`, no golden).
 
 Every fixture directory carries a `case.md` with Conversion, Requirement /
 fault, Level, Input, Expected, Independent oracle, Comparison, Normalization,
