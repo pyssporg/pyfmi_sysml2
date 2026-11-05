@@ -1,6 +1,9 @@
 // Minimal synthetic architecture: one interface parameter, one input, one
 // output. This is the smallest artifact set the generators must support.
 package Minimal {
+  private import ScalarValues::*;
+  private import PysspCore::*;
+
   port def ParameterInterface;
   attribute def ParameterSet;
 

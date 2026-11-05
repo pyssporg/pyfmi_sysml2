@@ -2,6 +2,9 @@
 // payload with a Boolean field. Ported from ssp_airplane's FuelSystem shape and
 // stripped of every domain-specific name.
 package Sensor {
+  private import ScalarValues::*;
+  private import PysspCore::*;
+
   port def ParameterInterface;
   attribute def ParameterSet;
 

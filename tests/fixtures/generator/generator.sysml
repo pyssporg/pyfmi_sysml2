@@ -1,6 +1,9 @@
 // Direct FMU model: the exported part definition is itself the component,
 // marked ':> FmuModel', with no container composition above it.
 package Generator {
+  private import ScalarValues::*;
+  private import PysspCore::*;
+
   part def FmuModel;
   attribute def FmuMetadata {
     attribute source : String;

@@ -2,6 +2,9 @@
 // input and two outputs of mixed primitive types. Ported from ssp_airplane's
 // MissionComputer shape and stripped of every domain-specific name.
 package Controller {
+  private import ScalarValues::*;
+  private import PysspCore::*;
+
   port def ParameterInterface;
   attribute def ParameterSet;
 

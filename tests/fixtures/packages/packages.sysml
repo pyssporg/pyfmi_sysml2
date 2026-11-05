@@ -1,6 +1,10 @@
 // Primary root of a two-root load: the composition the exporter selects, and a
 // definition whose bare name also exists in the included package.
 package Packages {
+  private import ScalarValues::*;
+  private import PysspCore::*;
+  private import Support::*;
+
   port def ParameterInterface;
   attribute def ParameterSet;
 

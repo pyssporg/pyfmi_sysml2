@@ -1,6 +1,9 @@
 // Included root: a part definition with parts that the primary composition
 // uses, and a second definition sharing a bare name with the primary package.
 package Support {
+  private import ScalarValues::*;
+  private import Packages::*;
+
   port def SupportSignal {
     attribute value : Real;
   }

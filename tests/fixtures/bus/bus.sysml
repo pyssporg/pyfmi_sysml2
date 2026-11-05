@@ -2,6 +2,9 @@
 // one inout and one undirected port. Ported from ssp_airplane's Environment
 // shape and stripped of every domain-specific name.
 package Bus {
+  private import ScalarValues::*;
+  private import PysspCore::*;
+
   port def ParameterInterface;
   attribute def ParameterSet;
 
