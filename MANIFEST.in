@@ -1,0 +1,1 @@
+recursive-include src/pyfmi_sysml2/fmi2_headers *.h

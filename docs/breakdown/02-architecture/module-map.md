@@ -2,7 +2,7 @@
 id: INFO-002
 type: info
 title: Module map
-summary: Six modules behind one facade; dependency flows sysmlpy to pycps_sysml2 to pyfmi_sysml2 to pyssp_standard.fmi2, never through pyssp_sysml2.
+summary: Seven modules behind one facade; dependency flows sysmlpy to pycps_sysml2 to pyfmi_sysml2 to pyssp_standard.fmi2, never through pyssp_sysml2.
 date: 2026-11-05
 status: current
 ---
@@ -19,6 +19,7 @@ src/pyfmi_sysml2/
 ├── interface.py          # the variable reduction: the single source of truth
 ├── model_description.py  # modelDescription.xml document and serializer
 ├── c_interface.py        # common and per-component C headers
+├── headers.py            # bundled FMI 2.0 standard headers
 ├── modelica.py           # Modelica package and connectors
 └── package.py            # FMU staging and deterministic archive
 ```

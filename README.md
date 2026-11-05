@@ -166,8 +166,8 @@ pyfmi package build/Plant.fmu \
 
 ## Python API
 
-The package exports four generator functions plus `stage_fmu` and the reduction
-types (`Component`, `Variable`, `components`).
+The package exports four generator functions, `fmi2_headers`, `stage_fmu`, and
+the reduction types (`Component`, `Variable`, `components`).
 
 ```python
 def generate_model_description(
@@ -196,6 +196,8 @@ def generate_modelica(
     composition: str | None = None,
 ) -> list[Path]: ...
 
+def fmi2_headers() -> tuple[Path, ...]: ...
+
 def package_fmu(
     output: str | Path,
     *,
@@ -211,8 +213,10 @@ def package_fmu(
 
 `source` is a `.sysml` file, a directory of them, or an already loaded
 `pycps_sysml2.Architecture`. `generation_time=None` stamps the current UTC time;
-pass a timezone-aware datetime for reproducible output. `package_fmu` stages the
-tree itself because the `pyssp_standard` `FMU.create` facade cannot carry
+pass a timezone-aware datetime for reproducible output. `fmi2_headers()` returns
+the bundled FMI 2.0 standard headers as real file paths, so an FMU build can pass
+them to `package_fmu` without copying them into the fixture. `package_fmu` stages
+the tree itself because the `pyssp_standard` `FMU.create` facade cannot carry
 `sources/`.
 
 ```python

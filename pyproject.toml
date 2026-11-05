@@ -31,6 +31,10 @@ pyfmi = "pyfmi_sysml2.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.package-data]
+pyfmi_sysml2 = ["fmi2_headers/*.h"]
 
 [tool.setuptools.dynamic]
 version = { attr = "pyfmi_sysml2.__version__" }
