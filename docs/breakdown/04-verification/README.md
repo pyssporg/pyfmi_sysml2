@@ -14,5 +14,5 @@ external oracles, and the rules a fixture follows.
 <!-- GENERATED FILE — do not edit. Regenerate with pb-registers. -->
 - **TEST-001** [Test strategy](test-strategy.md) — Six pytest markers, five levels plus a slow qualifier; each owns a distinct fault class, and component goldens are the default gate.
 - **TEST-002** [Cross-artifact consistency gate](cross-artifact-gate.md) — check_artifacts() reads modelDescription, the C header, and the packed FMU with independent parsers and proves they describe one component; mutation tests prove it fails when one is broken.
-- **TEST-003** [Oracles, fixtures, and goldens](oracles-and-fixtures.md) — gcc and g++ syntax-check the headers, omc checkModel proves the Modelica package, and four shared fixtures carry case records and byte-compared goldens.
+- **TEST-003** [Oracles, fixtures, and goldens](oracles-and-fixtures.md) — gcc and g++ syntax-check the headers, omc checkModel proves the Modelica package, and five shared fixtures carry case records and byte-compared goldens.
 <!-- pb:index:end -->

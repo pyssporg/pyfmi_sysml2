@@ -10,11 +10,13 @@ status: current
 # Interface reduction
 
 `interface.py` is the single source of the variable set. `components()` resolves
-the composition root, validates the parameter dialect, and returns exported leaf
-components sorted by name. Each `Component` carries parameter fields, port
-groups, and the flat `variables` tuple every generator iterates.
+the export unit, validates the parameter dialect, and returns the exported
+components. A container root exports its leaf descendants sorted by name; a
+part definition marked `:> FmuModel` is itself the export unit and returns as
+the single component. Each `Component` carries parameter fields, port groups,
+and the flat `variables` tuple every generator iterates.
 
-The four frozen dataclasses:
+The four interface dataclasses:
 
 - `Field`: a declared member, scalar or fixed-length array, with `members()`
   yielding `(suffix, member_expression)` per element.
@@ -34,5 +36,12 @@ Rules encoded here, not repeated in the generators:
 - C, C++, DataType, and Modelica type tables live here, so the four artifacts
   cannot disagree about a primitive's spelling.
 
-`resolve_system()` picks the composition when one part definition has parts and
-is not used as a part elsewhere; several candidates require `composition=`.
+`resolve_system()` picks a part definition marked `:> FmuModel` as the export
+unit; several marked definitions require `composition=` and are refused by
+name. When none is marked, it picks the part definition that has parts and is
+not used as a part elsewhere; several such roots also require `composition=`.
+
+`export_identity()` owns the naming rule for the selected unit: a container
+root names a component `<system>.<component>`, while a direct FMU model uses
+the bare definition name. The modelDescription and the guid both read that one
+helper, so a direct FMU cannot become `Generator.Generator`.

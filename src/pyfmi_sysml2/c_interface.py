@@ -24,6 +24,8 @@ from pyfmi_sysml2.interface import (
     Variable,
     c_type,
     components,
+    export_identity,
+    resolve_system,
     sanitize_identifier,
 )
 
@@ -74,9 +76,24 @@ def common_header_name(package: str) -> str:
     return f"{package}_InterfaceCommon.h"
 
 
-def component_header_name(package: str, component: str) -> str:
+def header_stem(package: str, component: str, *, direct: bool = False) -> str:
+    """The ``<package>_<component>`` stem the C symbols are built from.
+
+    A direct FMU model is named after its package, so repeating that name
+    would yield ``Generator_Generator`` for the only component in the build.
+    Only the direct case collapses the shared name; a container keeps the full
+    stem, even when its component happens to share the package name.
+    """
+    if direct and package == component:
+        return component
+    return f"{package}_{component}"
+
+
+def component_header_name(
+    package: str, component: str, *, direct: bool = False
+) -> str:
     """File name of one component header."""
-    return f"{package}_{component}.h"
+    return f"{header_stem(package, component, direct=direct)}.h"
 
 
 def _data_type_tag(package: str, type_name: str) -> str:
@@ -186,30 +203,38 @@ def interface_common_header(package: str, components: Sequence[Component]) -> st
     return "\n".join(lines)
 
 
-def component_header(package: str, component: Component) -> str:
-    """Text of ``<Pkg>_<Component>.h`` (no trailing newline)."""
+def component_header(
+    package: str, component: Component, *, direct: bool = False
+) -> str:
+    """Text of the component header (no trailing newline)."""
+    stem = header_stem(package, component.name, direct=direct)
     upper = sanitize_identifier(package)
-    name = sanitize_identifier(component.name)
-    guard = f"{upper}_{name}_H"
-    instance = f"{package}_{component.name}_Instance"
+    upper_stem = sanitize_identifier(stem)
+    guard = f"{upper_stem}_H"
+    instance = f"{stem}_Instance"
+    label = (
+        package
+        if direct and package == component.name
+        else f"{package}.{component.name}"
+    )
     lines = [
         f"#ifndef {guard}",
         f"#define {guard}",
         "",
         f'#include "{common_header_name(package)}"',
         "",
-        f"/* Generated interface for {package}.{component.name}. Do not edit manually. */",
+        f"/* Generated interface for {label}. Do not edit manually. */",
         "",
-        f"typedef enum {package}_{component.name}_ValueReference {{",
+        f"typedef enum {stem}_ValueReference {{",
     ]
     for variable in component.variables:
-        entry = f"{upper}_{name}_VR_{sanitize_identifier(variable.name)}"
+        entry = f"{upper_stem}_VR_{sanitize_identifier(variable.name)}"
         lines.append(f"  {entry} = {variable.value_reference},")
     lines.extend(
         [
-            f"}} {package}_{component.name}_ValueReference;",
+            f"}} {stem}_ValueReference;",
             "",
-            f"enum {{ {package}_{component.name}_VrCount = {component.vr_count} }};",
+            f"enum {{ {stem}_VrCount = {component.vr_count} }};",
             "",
             CPP_BEGIN,
             "#include <string>",
@@ -225,14 +250,14 @@ def component_header(package: str, component: Component) -> str:
     lines.extend(["};", ""])
 
     lines.append(
-        f"inline void {package}_{component.name}_initialize_vr_map("
+        f"inline void {stem}_initialize_vr_map("
         f"{instance}* instance) {{"
     )
-    lines.append(f"  for (size_t i = 0; i < {package}_{component.name}_VrCount; ++i) {{")
+    lines.append(f"  for (size_t i = 0; i < {stem}_VrCount; ++i) {{")
     lines.append(f"    instance->vr_map[i] = {{nullptr, {upper}_DATA_NONE, false}};")
     lines.append("  }")
     for variable in component.variables:
-        entry = f"{upper}_{name}_VR_{sanitize_identifier(variable.name)}"
+        entry = f"{upper_stem}_VR_{sanitize_identifier(variable.name)}"
         writable = "true" if variable.writable else "false"
         lines.append(
             f"  instance->vr_map[{entry}] = "
@@ -261,11 +286,15 @@ def generate_c_headers(
 
     ``prefix`` defaults to the architecture package name and decides the file
     names and the C type names. The returned list starts with the common
-    header, followed by one component header per exported component.
+    header, followed by one component header per exported component. A direct
+    FMU model whose definition names the package uses that name once.
     """
     architecture = _architecture(source)
     package = prefix or architecture.package_name
     exported = components(architecture, composition=composition)
+    direct = export_identity(
+        architecture, resolve_system(architecture, composition)
+    ).direct
 
     directory = Path(output_dir)
     directory.mkdir(parents=True, exist_ok=True)
@@ -279,8 +308,12 @@ def generate_c_headers(
     written.append(common_path)
 
     for item in exported:
-        path = directory / component_header_name(package, item.name)
-        path.write_text(component_header(package, item), encoding="utf-8")
+        path = directory / component_header_name(
+            package, item.name, direct=direct
+        )
+        path.write_text(
+            component_header(package, item, direct=direct), encoding="utf-8"
+        )
         written.append(path)
 
     return written

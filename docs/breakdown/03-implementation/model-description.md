@@ -14,8 +14,10 @@ in this module writes XML by hand.
 
 Document fields:
 
-- `fmi_version="2.0"`, `model_name="<composition>.<component>"`;
-- `guid` from the frozen uuid5 namespace, `generation_tool="pyfmi_sysml2 tooling"`;
+- `fmi_version="2.0"`, `model_name="<composition>.<component>"` for a container
+  root, or the bare `<definition>` for a direct FMU model;
+- `guid` from the frozen uuid5 namespace (`pyssp_sysml2/<composition>/<component>`
+  or `pyssp_sysml2/<definition>`), `generation_tool="pyfmi_sysml2 tooling"`;
 - `generation_date_and_time` from the injected clock;
 - `variable_naming_convention="structured"`;
 - `interface_type="CoSimulation"` and `capabilities` with
@@ -38,8 +40,8 @@ The `start` text is produced by `pycps_sysml2.core.format_value`, so a Boolean
 is `true`/`false`, never `str(True)`.
 
 Parity with `pyssp_sysml2` v0.3.0 was checked against the frozen generator on
-its `identity` golden: `modelName`, `guid`, every `ScalarVariable`, and both
-`ModelStructure` groups are identical. Three deliberate deviations remain:
-`generationTool` names this library, and the empty `description=""`,
-`version="1.0"`, and `numberOfEventIndicators="0"` root attributes are not
-invented (FMI authoring attributes are a v0.2.0 item).
+its `identity` golden for a container composition: `modelName`, `guid`, every
+`ScalarVariable`, and both `ModelStructure` groups are identical. Three
+deliberate deviations remain: `generationTool` names this library, and the empty
+`description=""`, `version="1.0"`, and `numberOfEventIndicators="0"` root
+attributes are not invented (FMI authoring attributes are a v0.2.0 item).

@@ -11,7 +11,9 @@ status: current
 
 `generate_c_headers()` writes `<prefix>_InterfaceCommon.h` followed by one
 `<prefix>_<Component>.h` per exported component. `prefix` defaults to the
-architecture package name.
+architecture package name. A direct FMU model whose definition carries the
+package name uses that name once (`Generator.h`, not `Generator_Generator.h`);
+`header_stem()` owns the rule for both the file name and the C identifiers.
 
 Common header:
 

@@ -14,7 +14,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from pycps_sysml2 import load
+from pycps_sysml2 import core_definitions, load
 
 from conftest import GOLDEN_ROOT, fixture_path, update_goldens
 from golden_utils import assert_golden_text
@@ -23,14 +23,21 @@ from pyfmi_sysml2.c_interface import (
     component_header,
     component_header_name,
     generate_c_headers,
+    header_stem,
     interface_common_header,
     member_expression,
 )
-from pyfmi_sysml2.interface import DATA_TYPE_TAGS, components, sanitize_identifier
+from pyfmi_sysml2.interface import (
+    DATA_TYPE_TAGS,
+    components,
+    export_identity,
+    resolve_system,
+    sanitize_identifier,
+)
 
 pytestmark = pytest.mark.component
 
-SUBJECTS = ("bus", "controller", "minimal", "sensor")
+SUBJECTS = ("bus", "controller", "generator", "minimal", "sensor")
 
 GOLDEN = GOLDEN_ROOT / "c-headers"
 
@@ -123,6 +130,7 @@ def test_headers_match_golden(subject: str, tmp_path: Path) -> None:
 def test_text_builders_match_written_files(subject: str, tmp_path: Path) -> None:
     architecture = load(_source(subject))
     package = architecture.package_name
+    direct = export_identity(architecture, resolve_system(architecture)).direct
     exported = components(architecture)
     written = {path.name: _text(path) for path in _generated(subject, tmp_path)}
 
@@ -130,9 +138,9 @@ def test_text_builders_match_written_files(subject: str, tmp_path: Path) -> None
         package, exported
     )
     for item in exported:
-        assert written[component_header_name(package, item.name)] == (
-            component_header(package, item)
-        )
+        assert written[
+            component_header_name(package, item.name, direct=direct)
+        ] == component_header(package, item, direct=direct)
 
 
 @pytest.mark.parametrize("subject", SUBJECTS)
@@ -151,16 +159,19 @@ def test_vr_enum_matches_component_variables(subject: str, tmp_path: Path) -> No
     written = _generated(subject, tmp_path)
     texts = {path.name: _text(path) for path in written}
 
+    direct = export_identity(architecture, resolve_system(architecture)).direct
     for item in components(architecture):
-        text = texts[component_header_name(package, item.name)]
+        text = texts[component_header_name(package, item.name, direct=direct)]
         entries = _vr_entries(text)
+        stem = sanitize_identifier(
+            header_stem(package, item.name, direct=direct)
+        )
 
         assert [value for _, value in entries] == [
             variable.value_reference for variable in item.variables
         ]
         assert [label for label, _ in entries] == [
-            f"{sanitize_identifier(package)}_{sanitize_identifier(item.name)}"
-            f"_VR_{sanitize_identifier(variable.name)}"
+            f"{stem}_VR_{sanitize_identifier(variable.name)}"
             for variable in item.variables
         ]
         assert len({label for label, _ in entries}) == item.vr_count
@@ -173,8 +184,9 @@ def test_writability_follows_causality(subject: str, tmp_path: Path) -> None:
     written = _generated(subject, tmp_path)
     texts = {path.name: _text(path) for path in written}
 
+    direct = export_identity(architecture, resolve_system(architecture)).direct
     for item in components(architecture):
-        text = texts[component_header_name(package, item.name)]
+        text = texts[component_header_name(package, item.name, direct=direct)]
         entries = [label for label, _ in _vr_entries(text)]
         assignments = {
             match.group("entry"): (
@@ -186,10 +198,12 @@ def test_writability_follows_causality(subject: str, tmp_path: Path) -> None:
         }
 
         assert list(assignments) == entries
+        stem = sanitize_identifier(
+            header_stem(package, item.name, direct=direct)
+        )
         for variable in item.variables:
             member, tag, writable = assignments[
-                f"{sanitize_identifier(package)}_{sanitize_identifier(item.name)}"
-                f"_VR_{sanitize_identifier(variable.name)}"
+                f"{stem}_VR_{sanitize_identifier(variable.name)}"
             ]
             assert member == member_expression(variable.member)
             assert tag == (
@@ -264,11 +278,13 @@ def test_headers_compile(subject: str, tmp_path: Path) -> None:
     architecture = load(_source(subject))
     package = architecture.package_name
     items = components(architecture)
+    direct = export_identity(architecture, resolve_system(architecture)).direct
 
     includes = "\n".join(f'#include "{name}"' for name in names)
-    vr_counts = " + ".join(
-        f"(int){package}_{item.name}_VrCount" for item in items
-    ) or "0"
+    stems = [
+        header_stem(package, item.name, direct=direct) for item in items
+    ]
+    vr_counts = " + ".join(f"(int){stem}_VrCount" for stem in stems) or "0"
 
     c_source = tmp_path / "trigger.c"
     c_source.write_text(
@@ -277,9 +293,9 @@ def test_headers_compile(subject: str, tmp_path: Path) -> None:
     )
 
     cpp_body = "\n".join(
-        f"  {package}_{item.name}_Instance {_instance(item.name)};\n"
-        f"  {package}_{item.name}_initialize_vr_map(&{_instance(item.name)});"
-        for item in items
+        f"  {stem}_Instance {_instance(item.name)};\n"
+        f"  {stem}_initialize_vr_map(&{_instance(item.name)});"
+        for item, stem in zip(items, stems)
     )
     cpp_source = tmp_path / "trigger.cpp"
     cpp_source.write_text(
@@ -320,6 +336,97 @@ def test_composition_selects_the_exported_root(tmp_path: Path) -> None:
         "Controller_InterfaceCommon.h",
         "Controller_Controller.h",
     ]
+
+
+def test_direct_fmu_model_is_the_export_unit(tmp_path: Path) -> None:
+    """A marked definition needs no container root; it exports itself."""
+    architecture = load(_source("generator"))
+
+    system = resolve_system(architecture)
+    exported = components(architecture)
+
+    assert system.name == "Generator"
+    assert [item.name for item in exported] == ["Generator"]
+    assert [item.name for item in components(architecture, composition="Generator")] == [
+        "Generator"
+    ]
+    assert [path.name for path in generate_c_headers(architecture, tmp_path)] == [
+        "Generator_InterfaceCommon.h",
+        "Generator.h",
+    ]
+
+
+def test_direct_fmu_model_header_is_not_doubled(tmp_path: Path) -> None:
+    """The package name is not repeated in the direct component header."""
+    [common, component] = generate_c_headers(_source("generator"), tmp_path)
+    text = _text(component)
+
+    assert common.name == "Generator_InterfaceCommon.h"
+    assert component.name == "Generator.h"
+    assert "typedef enum Generator_ValueReference {" in text
+    assert "enum { Generator_VrCount = 3 };" in text
+    assert "struct Generator_Instance {" in text
+    assert "Generator_Generator" not in text
+    assert "Generator_Generator" not in _text(common)
+
+
+def test_marker_definition_is_not_an_export_candidate(tmp_path: Path) -> None:
+    """``part def FmuModel;`` from the core is a role marker, not a component."""
+    architecture = tmp_path / "plain.sysml"
+    architecture.write_text(
+        """package Plain {
+  port def Signal {
+    attribute value : Real;
+  }
+
+  part def Leaf {
+    out port y : Signal;
+  }
+
+  part def PlainComposition {
+    part leaf : Leaf;
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    loaded = load(architecture, core_definitions())
+
+    assert resolve_system(loaded).name == "PlainComposition"
+    assert [item.name for item in components(loaded)] == ["Leaf"]
+
+
+def test_several_fmu_models_require_a_name(tmp_path: Path) -> None:
+    """Two marked definitions are as ambiguous as two container roots."""
+    architecture = tmp_path / "pair.sysml"
+    architecture.write_text(
+        """package Pair {
+  part def FmuModel;
+
+  port def Signal {
+    attribute value : Real;
+  }
+
+  part def Alpha :> FmuModel {
+    out port y : Signal;
+  }
+
+  part def Zulu :> FmuModel {
+    out port y : Signal;
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Cannot pick a composition root") as found:
+        components(load(architecture))
+
+    message = str(found.value)
+    assert "2 FmuModel candidates" in message
+    assert "Alpha" in message
+    assert "Zulu" in message
 
 
 def test_accepts_an_architecture_object(tmp_path: Path) -> None:

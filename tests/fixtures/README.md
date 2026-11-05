@@ -21,6 +21,7 @@ mirror the names: `tests/golden/<artifact>/<subject>/`.
 | `sensor` | a `Boolean` in an output payload and two authored defaults | 6 |
 | `controller` | a `Real[2]` list parameter and a `String` parameter | 9 |
 | `bus` | no parameters, seven ports, an `inout` port, reused payloads | 20 |
+| `generator` | a direct `:> FmuModel` definition with no container root | 3 |
 
 ## Naming rule
 

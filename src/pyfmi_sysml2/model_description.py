@@ -34,7 +34,9 @@ from pyssp_standard.standard.fmi2.validation import Fmi2ModelDescriptionValidato
 
 from pyfmi_sysml2.interface import (
     Component,
+    ExportIdentity,
     components,
+    export_identity,
     resolve_system,
 )
 
@@ -72,16 +74,21 @@ def format_generation_time(moment: datetime | None) -> str:
     return moment.astimezone(timezone.utc).strftime(GENERATION_TIME_FORMAT)
 
 
+def _guid(key: str) -> str:
+    """Format one uuid5 namespace key as an FMI ``guid``."""
+    return "{" + str(uuid.uuid5(GUID_NAMESPACE, key)) + "}"
+
+
 def component_guid(composition: str, component: str) -> str:
-    """Stable FMI ``guid`` for one component of one composition.
+    """Stable FMI ``guid`` for one component of one container composition.
 
     The namespace string is frozen verbatim from pyssp_sysml2 v0.3.0
     (``artifacts/fmi.py:183-185``): the ``pyssp_sysml2/`` prefix stays even
     though this package is named differently, so migrating a build from one
-    generator to the other does not change a single guid.
+    generator to the other does not change a single guid. A direct FMU model
+    has no container level; :class:`ExportIdentity` derives that form.
     """
-    digest = uuid.uuid5(GUID_NAMESPACE, f"pyssp_sysml2/{composition}/{component}")
-    return "{" + str(digest) + "}"
+    return _guid(ExportIdentity(composition, False).guid_key(component))
 
 
 def _control_float(system: PartDefinition, name: str) -> float | None:
@@ -126,13 +133,14 @@ def model_description_document(
     if isinstance(component, str):
         component = _select_component(architecture, component, composition=composition)
     system = resolve_system(architecture, composition)
+    identity = export_identity(architecture, system)
 
     outputs = [Fmi2Unknown(index=variable.index) for variable in component.outputs]
     return Fmi2ModelDescriptionDocument(
         root=Fmi2ElementInfo(tag="fmiModelDescription"),
         fmi_version=FMI_VERSION,
-        model_name=f"{system.name}.{component.name}",
-        guid=component_guid(system.name, component.name),
+        model_name=identity.model_name(component.name),
+        guid=_guid(identity.guid_key(component.name)),
         description=component.doc or None,
         generation_tool=GENERATION_TOOL,
         generation_date_and_time=format_generation_time(generation_time),

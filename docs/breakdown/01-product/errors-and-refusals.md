@@ -14,7 +14,8 @@ element or path.
 
 Model errors:
 
-- several part definitions could be the composition root, or none: pass
+- several part definitions could be the composition root — several marked
+  `:> FmuModel` definitions, or several container roots — or none: pass
   `composition=`;
 - an unresolved port definition on a leaf part;
 - a flat parameter attribute where the parameter dialect is required;

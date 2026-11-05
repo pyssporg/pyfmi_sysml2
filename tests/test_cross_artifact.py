@@ -24,6 +24,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import pytest
+import pycps_sysml2
 from pyssp_standard.standard.fmi2.codec import Fmi2ModelDescriptionXmlCodec
 
 from conftest import GENERATION_TIME, fixture_path
@@ -33,7 +34,7 @@ from pyfmi_sysml2.package import package_fmu
 
 pytestmark = pytest.mark.contract
 
-SUBJECTS = ("bus", "controller", "minimal", "sensor")
+SUBJECTS = ("bus", "controller", "generator", "minimal", "sensor")
 
 #: Frames the value-reference enum of a component header.
 _ENUM = re.compile(
@@ -215,7 +216,12 @@ def check_artifacts(
                 f"modelIdentifier {identifier!r} does not match binary stem "
                 f"{Path(binary).stem!r}"
             )
-        expected_stem = f"{package}_{identifier}"
+        # A direct FMU model uses its bare definition name for modelName; a
+        # container root uses ``<system>.<component>``.
+        direct = document.model_name == identifier
+        expected_stem = (
+            identifier if direct else f"{package}_{identifier}"
+        )
         if identifier is None or stem != expected_stem:
             raise ArtifactMismatch(
                 f"modelIdentifier {identifier!r} does not match the header "
@@ -332,7 +338,9 @@ def build_artifacts(directory: Path, subject: str) -> Artifacts:
     component = description.parent.name
 
     headers = generate_c_headers(source, directory / "headers")
-    matching = [path for path in headers if path.stem.endswith(f"_{component}")]
+    package = pycps_sysml2.load(source).package_name
+    stems = {f"{package}_{component}", component}
+    matching = [path for path in headers if path.stem in stems]
     if len(matching) != 1:
         raise AssertionError(
             f"no single component header for {component} in "

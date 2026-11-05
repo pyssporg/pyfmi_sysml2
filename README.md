@@ -244,11 +244,13 @@ pyfmi_sysml2.package_fmu(
 
 ## Generated artifact set
 
-- `<out>/<Component>/modelDescription.xml` — one per exported leaf component.
+- `<out>/<Component>/modelDescription.xml` — one per exported component (a
+  container root exports its leaves; a `:> FmuModel` definition exports itself).
 - `<out>/<Prefix>_InterfaceCommon.h` — port payload structs, `DataType` enum,
   and `VrMapping`; plain C11.
 - `<out>/<Prefix>_<Component>.h` — VR enum, `VrCount`, and the C++ `Instance`
-  plus `initialize_vr_map()`.
+  plus `initialize_vr_map()`; a direct FMU model whose definition names the
+  package uses that name once (`Generator.h`).
 - `<out>/<Package>/package.mo`, `package.order`, `Interfaces.mo`,
   `GeneratedInterfaces.mo` — one connector per port definition.
 - `<archive>.fmu` — `modelDescription.xml` at the root,
@@ -272,8 +274,9 @@ first, then ports in declaration order, then fields.
 - **`modelIdentifier 'Tank' does not match binary stem 'libTank'`** — name the
   shared library exactly `<modelIdentifier>.so` (or pass the matching
   `--platform` binary).
-- **`Cannot pick a composition root`** — several part definitions have parts and
-  are unused; pass `--composition NAME`.
+- **`Cannot pick a composition root`** — several `:> FmuModel` definitions, or
+  several part definitions that have parts and are unused; pass
+  `--composition NAME`.
 - **Multiplicity is not a fixed length** — FMI 2.0 needs one scalar per element;
   use a fixed list size.
 
@@ -304,7 +307,8 @@ instead:
 | Modelica connector export | `pyfmi modelica ...` |
 | FMU packaging | `pyfmi package ...` |
 
-The artifacts are migration-compatible: the `guid` namespace string remains
-literally `pyssp_sysml2/<composition>/<component>`, and `modelName` keeps the
-`<composition>.<component>` form, so rebuilding with `pyfmi` does not change
-identity.
+The artifacts are migration-compatible: a container root keeps the `guid`
+namespace string `pyssp_sysml2/<composition>/<component>` and the
+`<composition>.<component>` `modelName`. A direct `:> FmuModel` definition uses
+`pyssp_sysml2/<definition>` and the bare `<definition>` name, so rebuilding with
+`pyfmi` does not change identity.

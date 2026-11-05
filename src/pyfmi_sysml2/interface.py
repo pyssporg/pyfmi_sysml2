@@ -30,6 +30,8 @@ from pycps_sysml2.core import (
     format_value,
     map_fmi_type,
 )
+from pycps_sysml2.metadata.helpers import short_name
+from pycps_sysml2.metadata.roles import FMU_MODEL_MARKER, is_fmu_model
 from pycps_sysml2.parameters import (
     SSP_POLICY,
     component_definitions,
@@ -309,17 +311,65 @@ def component_interface(
     )
 
 
+@dataclass(frozen=True)
+class ExportIdentity:
+    """How the export unit names the components it exports.
+
+    A container root exports leaf components as ``<system>.<component>``. A
+    part definition that is itself the FMU model (``:> FmuModel``) exports
+    itself under its bare name, so the FMI identity of a direct FMU is the
+    definition name rather than ``<name>.<name>``.
+    """
+
+    system: str
+    direct: bool
+
+    def model_name(self, component: str) -> str:
+        """FMI ``modelName`` of one exported component."""
+        return component if self.direct else f"{self.system}.{component}"
+
+    def guid_key(self, component: str) -> str:
+        """Frozen uuid5 name of one exported component's guid."""
+        scope = "pyssp_sysml2" if self.direct else f"pyssp_sysml2/{self.system}"
+        return f"{scope}/{component}"
+
+
+def export_identity(
+    architecture: Architecture, system: PartDefinition
+) -> ExportIdentity:
+    """The naming rule for the export unit ``resolve_system`` selected."""
+    return ExportIdentity(system.name, is_fmu_model(architecture, system))
+
+
 def resolve_system(
     architecture: Architecture, composition: str | None = None
 ) -> PartDefinition:
     """The part definition whose components are exported.
 
-    ``composition`` names it explicitly. Without a name, the single part
-    definition that has parts and is not used as a part elsewhere is taken;
-    an architecture with several such roots must name one.
+    ``composition`` names it explicitly. Without a name, a part definition
+    marked ``:> FmuModel`` is the export unit itself, and several such
+    candidates must name one. When none is marked, the single part definition
+    that has parts and is not used as a part elsewhere is taken; an
+    architecture with several such roots must name one.
     """
     if composition is not None:
         return architecture.get_part_def(composition)
+
+    fmu_models = [
+        definition
+        for definition in architecture.part_definitions.values()
+        if is_fmu_model(architecture, definition)
+        and short_name(definition.name) != FMU_MODEL_MARKER
+    ]
+    if fmu_models:
+        if len(fmu_models) == 1:
+            return fmu_models[0]
+        names = ", ".join(sorted(definition.name for definition in fmu_models))
+        raise ValueError(
+            "Cannot pick a composition root; "
+            f"{len(fmu_models)} {FMU_MODEL_MARKER} candidates ({names}). "
+            "Pass composition=."
+        )
 
     used: set[str] = set()
     for definition in architecture.part_definitions.values():
@@ -346,20 +396,29 @@ def components(
     *,
     composition: str | None = None,
 ) -> list[Component]:
-    """Every exported leaf component, sorted by name.
+    """Every exported component, sorted by name.
 
-    The parameter dialect is validated first, so a flat parameter attribute is
+    A composition that is itself the FMU model exports that definition as its
+    single component; a container root exports its leaf descendants. The
+    parameter dialect is validated first, so a flat parameter attribute is
     reported instead of silently dropped.
     """
     system = resolve_system(architecture, composition)
     validate_parameter_dialect(architecture, system, policy=SSP_POLICY)
+    if export_identity(architecture, system).direct:
+        definitions = [system]
+    else:
+        definitions = [
+            definition
+            for definition in sorted(
+                component_definitions(architecture, system),
+                key=lambda candidate: candidate.name,
+            )
+            if not definition.parts
+        ]
     return [
         component_interface(architecture, definition)
-        for definition in sorted(
-            component_definitions(architecture, system),
-            key=lambda candidate: candidate.name,
-        )
-        if not definition.parts
+        for definition in definitions
     ]
 
 
@@ -369,7 +428,7 @@ def component(
     *,
     composition: str | None = None,
 ) -> Component:
-    """One named leaf component."""
+    """One named exported component."""
     for candidate in components(architecture, composition=composition):
         if candidate.name == name:
             return candidate

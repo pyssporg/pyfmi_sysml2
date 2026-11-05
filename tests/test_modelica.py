@@ -14,7 +14,7 @@ from pyfmi_sysml2.modelica import generate_modelica
 
 pytestmark = pytest.mark.component
 
-SUBJECTS = ("bus", "controller", "minimal", "sensor")
+SUBJECTS = ("bus", "controller", "generator", "minimal", "sensor")
 
 #: Every file the generator writes, relative to ``<output>/<package>/``.
 FILES = ("GeneratedInterfaces.mo", "Interfaces.mo", "package.mo", "package.order")
@@ -48,6 +48,7 @@ CONNECTORS = {
         "Status": ["output Integer code;"],
         "Throttle": ["output Real demand;", "output Boolean enabled;"],
     },
+    "generator": {"RealSignal": ["output Real value;"]},
     "minimal": {"Signal": ["Real value;"]},
     "sensor": {
         "LevelState": [

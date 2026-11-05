@@ -14,10 +14,14 @@ Three inputs could otherwise vary between runs. Each is pinned.
 ## Guid
 
 `component_guid()` is `uuid5(NAMESPACE_URL, "pyssp_sysml2/<composition>/<component>")`,
-formatted in braces. The `pyssp_sysml2/` prefix is deliberate and frozen: the
-v0.3.0 generator derived the same guid, so migrating a build does not change a
-single guid. Changing the prefix or the composition/component spelling is a
-breaking change for every consumer that stored a guid.
+formatted in braces, for a component exported by a container root. A direct FMU
+model has no container level, so its guid is
+`uuid5(NAMESPACE_URL, "pyssp_sysml2/<definition>")` and its `modelName` is the
+bare definition name. `ExportIdentity` derives both spellings from one rule.
+The `pyssp_sysml2/` prefix is deliberate and frozen: the v0.3.0 generator
+derived the same guid, so migrating a build does not change a single guid.
+Changing the prefix or the component spelling is a breaking change for every
+consumer that stored a guid.
 
 ## Clock
 

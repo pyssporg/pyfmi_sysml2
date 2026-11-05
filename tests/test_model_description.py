@@ -31,8 +31,8 @@ pytestmark = pytest.mark.component
 
 CODEC = Fmi2ModelDescriptionXmlCodec()
 
-#: Fixture subjects; each has exactly one leaf component.
-SUBJECTS = ("minimal", "sensor", "controller", "bus")
+#: Fixture subjects; each has exactly one exported component.
+SUBJECTS = ("minimal", "sensor", "controller", "bus", "generator")
 
 #: ``component_guid("ControllerComposition", "Controller")``, computed by the
 #: test from ``uuid5(NAMESPACE_URL, "pyssp_sysml2/<composition>/<component>")``.
@@ -174,9 +174,12 @@ def test_every_generated_file_validates(subject: str, tmp_path: Path) -> None:
         Fmi2ModelDescriptionValidator().validate(CODEC.parse(xml), xml)
 
 
-def test_same_generation_time_is_byte_identical(tmp_path: Path) -> None:
-    first = _generate("sensor", tmp_path / "first")
-    second = _generate("sensor", tmp_path / "second")
+@pytest.mark.parametrize("subject", ("sensor", "generator"))
+def test_same_generation_time_is_byte_identical(
+    subject: str, tmp_path: Path
+) -> None:
+    first = _generate(subject, tmp_path / "first")
+    second = _generate(subject, tmp_path / "second")
 
     assert [path.read_bytes() for path in first] == [
         path.read_bytes() for path in second
@@ -223,6 +226,25 @@ def test_controller_guid_is_pinned(tmp_path: Path) -> None:
     assert CODEC.parse(_read(path)).guid == expected
     assert component_guid("ControllerComposition", "Controller") == expected
     assert expected == CONTROLLER_GUID
+
+
+def test_direct_fmu_model_identity_is_the_bare_name(tmp_path: Path) -> None:
+    """A marked definition is its own component; no container level is added."""
+    expected = (
+        "{"
+        + str(uuid.uuid5(uuid.NAMESPACE_URL, "pyssp_sysml2/Generator"))
+        + "}"
+    )
+
+    [path] = _generate("generator", tmp_path)
+
+    document = CODEC.parse(_read(path))
+
+    assert path.parent.name == "Generator"
+    assert document.model_name == "Generator"
+    assert document.capabilities is not None
+    assert document.capabilities.model_identifier == "Generator"
+    assert document.guid == expected
 
 
 def test_controller_variable_summary_is_exact() -> None:
