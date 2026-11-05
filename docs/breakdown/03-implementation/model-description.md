@@ -36,3 +36,10 @@ returns the paths; a named component that is not exported is a `ValueError`.
 
 The `start` text is produced by `pycps_sysml2.core.format_value`, so a Boolean
 is `true`/`false`, never `str(True)`.
+
+Parity with `pyssp_sysml2` v0.3.0 was checked against the frozen generator on
+its `identity` golden: `modelName`, `guid`, every `ScalarVariable`, and both
+`ModelStructure` groups are identical. Three deliberate deviations remain:
+`generationTool` names this library, and the empty `description=""`,
+`version="1.0"`, and `numberOfEventIndicators="0"` root attributes are not
+invented (FMI authoring attributes are a v0.2.0 item).

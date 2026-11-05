@@ -42,9 +42,10 @@ jobs:
           assert not any("0.0.0" in path.name for path in dist.iterdir()), list(dist.iterdir())
 
           wheel = wheels[0]
-          version = wheel.name.split("-")[1]
+          version = wheel.name.split("-", 1)[1].split("-")[0]
+          sdist_version = sdists[0].name.removesuffix(".tar.gz").split("-", 1)[1]
           assert version != "0.0.0", wheel.name
-          assert sdists[0].name.split("-")[1] == version, sdists[0].name
+          assert sdist_version == version, sdists[0].name
 
           with zipfile.ZipFile(wheel) as zf:
               assert zf.testzip() is None
