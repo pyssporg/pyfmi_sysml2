@@ -11,12 +11,13 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 from pycps_sysml2 import core_definitions, load
 
-from conftest import GOLDEN_ROOT, fixture_path, update_goldens
+from conftest import GOLDEN_ROOT, GENERATION_TIME, fixture_path, update_goldens
 from golden_utils import assert_golden_text
 from pyfmi_sysml2.c_interface import (
     common_header_name,
@@ -34,6 +35,7 @@ from pyfmi_sysml2.interface import (
     resolve_system,
     sanitize_identifier,
 )
+from pyfmi_sysml2.model_description import generate_model_description
 
 pytestmark = pytest.mark.component
 
@@ -76,6 +78,11 @@ _ASSIGNMENT = re.compile(
     re.MULTILINE,
 )
 
+_GUID_MACRO = re.compile(
+    r'^#define (?P<macro>\w+)_GUID "(?P<guid>\{[0-9a-f-]+\})"$',
+    re.MULTILINE,
+)
+
 
 def _source(subject: str) -> Path:
     return fixture_path(subject, f"{subject}.sysml")
@@ -110,6 +117,23 @@ def _outside_cpp_block(text: str) -> str:
     return text[:start] + text[end:]
 
 
+def _guid_macro(text: str) -> tuple[str, str]:
+    """``(macro, guid)`` of the component header's ``*_GUID`` line."""
+    match = _GUID_MACRO.search(text)
+    assert match is not None, "no *_GUID macro"
+    return f"{match.group('macro')}_GUID", match.group("guid")
+
+
+def _model_description_guid(subject: str, directory: Path) -> str:
+    """The ``guid`` attribute of the subject's generated modelDescription."""
+    [path] = generate_model_description(
+        _source(subject), directory, generation_time=GENERATION_TIME
+    )
+    guid = ET.parse(path).getroot().get("guid")
+    assert guid is not None
+    return guid
+
+
 @pytest.mark.parametrize("subject", SUBJECTS)
 def test_headers_match_golden(subject: str, tmp_path: Path) -> None:
     written = _generated(subject, tmp_path)
@@ -130,7 +154,8 @@ def test_headers_match_golden(subject: str, tmp_path: Path) -> None:
 def test_text_builders_match_written_files(subject: str, tmp_path: Path) -> None:
     architecture = load(_source(subject))
     package = architecture.package_name
-    direct = export_identity(architecture, resolve_system(architecture)).direct
+    system = resolve_system(architecture)
+    direct = export_identity(architecture, system).direct
     exported = components(architecture)
     written = {path.name: _text(path) for path in _generated(subject, tmp_path)}
 
@@ -140,7 +165,7 @@ def test_text_builders_match_written_files(subject: str, tmp_path: Path) -> None
     for item in exported:
         assert written[
             component_header_name(package, item.name, direct=direct)
-        ] == component_header(package, item, direct=direct)
+        ] == component_header(package, item, direct=direct, system=system.name)
 
 
 @pytest.mark.parametrize("subject", SUBJECTS)
@@ -211,6 +236,28 @@ def test_writability_follows_causality(subject: str, tmp_path: Path) -> None:
                 f"{DATA_TYPE_TAGS[variable.type_name]}"
             )
             assert writable == ("true" if variable.causality != "output" else "false")
+
+
+@pytest.mark.parametrize("subject", SUBJECTS)
+def test_guid_macro_matches_model_description(
+    subject: str, tmp_path: Path
+) -> None:
+    """The header guid is the guid the modelDescription writes for the component."""
+    architecture = load(_source(subject))
+    package = architecture.package_name
+    system = resolve_system(architecture)
+    direct = export_identity(architecture, system).direct
+    written = {path.name: _text(path) for path in _generated(subject, tmp_path)}
+
+    expected = _model_description_guid(subject, tmp_path / "descriptions")
+    for item in components(architecture):
+        name = component_header_name(package, item.name, direct=direct)
+        macro, guid = _guid_macro(written[name])
+        stem = sanitize_identifier(
+            header_stem(package, item.name, direct=direct)
+        )
+        assert macro == f"{stem}_GUID"
+        assert guid == expected
 
 
 @pytest.mark.parametrize("subject", SUBJECTS)
@@ -328,6 +375,19 @@ def test_prefix_overrides_file_and_type_names(tmp_path: Path) -> None:
     assert "struct Custom_Scale_Instance {" in component
 
 
+def test_guid_macro_follows_the_prefix_override(tmp_path: Path) -> None:
+    """``prefix`` changes the macro stem, never the guid itself."""
+    written = generate_c_headers(_source("minimal"), tmp_path, prefix="Custom")
+    component = _text(written[1])
+
+    macro, guid = _guid_macro(component)
+    assert macro == "CUSTOM_SCALE_GUID"
+    # Frozen uuid5 over "pyssp_sysml2/Root/Scale"; the system scope is
+    # untouched by the prefix.
+    assert guid == "{1cd5dff9-41fe-5fdf-abd6-fe39bc507661}"
+    assert guid == _model_description_guid("minimal", tmp_path / "descriptions")
+
+
 def test_composition_selects_the_exported_root(tmp_path: Path) -> None:
     written = generate_c_headers(
         _source("controller"), tmp_path, composition="ControllerComposition"
@@ -368,6 +428,33 @@ def test_direct_fmu_model_header_is_not_doubled(tmp_path: Path) -> None:
     assert "struct Generator_Instance {" in text
     assert "Generator_Generator" not in text
     assert "Generator_Generator" not in _text(common)
+
+
+def test_guid_macro_direct_fmu_has_no_container_level(tmp_path: Path) -> None:
+    """A direct FMU guid key is ``pyssp_sysml2/<definition>``, like the XML."""
+    [common, component] = generate_c_headers(_source("generator"), tmp_path)
+    text = _text(component)
+
+    macro, guid = _guid_macro(text)
+    assert macro == "GENERATOR_GUID"
+    # Frozen uuid5 over "pyssp_sysml2/Generator": the direct key has no
+    # container level.
+    assert guid == "{eca0627b-dad2-5d71-90b2-e450ef615122}"
+    assert guid == _model_description_guid("generator", tmp_path / "descriptions")
+
+
+def test_guid_macro_composition_nested_uses_the_system_scope(
+    tmp_path: Path,
+) -> None:
+    """A container root scopes the guid key by its system name, like the XML."""
+    [common, component] = generate_c_headers(_source("controller"), tmp_path)
+    text = _text(component)
+
+    macro, guid = _guid_macro(text)
+    assert macro == "CONTROLLER_CONTROLLER_GUID"
+    # Frozen uuid5 over "pyssp_sysml2/ControllerComposition/Controller".
+    assert guid == "{64044cfb-9f40-5998-99f1-6652e4828def}"
+    assert guid == _model_description_guid("controller", tmp_path / "descriptions")
 
 
 def test_marker_definition_is_not_an_export_candidate(tmp_path: Path) -> None:

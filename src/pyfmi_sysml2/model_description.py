@@ -49,23 +49,28 @@ GENERATION_TOOL = "pyfmi_sysml2 tooling"
 #: FMI ``dateTime`` form: UTC, second precision.
 GENERATION_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
+#: Fixed epoch stamped when no ``generation_time`` is injected, so an
+#: un-injected build is byte-reproducible without a wall-clock read.
+DEFAULT_GENERATION_TIME = datetime(2000, 1, 1, tzinfo=timezone.utc)
+
 #: Namespace the FMI ``guid`` is derived from.
 GUID_NAMESPACE = uuid.NAMESPACE_URL
 
 
 def utc_now() -> datetime:
-    """Current time in UTC; the clock hook for ``generationDateAndTime``."""
+    """Current UTC time; pass it as ``generation_time`` for a wall-clock stamp."""
     return datetime.now(timezone.utc)
 
 
 def format_generation_time(moment: datetime | None) -> str:
     """Render a timezone-aware time as an FMI ``dateTime``.
 
-    ``None`` means now. A naive time is rejected rather than guessed at, because
-    the artifact would then depend on the host's locality.
+    ``None`` means :data:`DEFAULT_GENERATION_TIME`, never the wall clock, so a
+    default build is reproducible. A naive time is rejected rather than guessed
+    at, because the artifact would then depend on the host's locality.
     """
     if moment is None:
-        moment = utc_now()
+        moment = DEFAULT_GENERATION_TIME
     if moment.tzinfo is None or moment.utcoffset() is None:
         raise ValueError(
             "generation_time must be timezone-aware, e.g. "
@@ -79,16 +84,19 @@ def _guid(key: str) -> str:
     return "{" + str(uuid.uuid5(GUID_NAMESPACE, key)) + "}"
 
 
-def component_guid(composition: str, component: str) -> str:
-    """Stable FMI ``guid`` for one component of one container composition.
+def component_guid(
+    composition: str, component: str, *, direct: bool = False
+) -> str:
+    """Stable FMI ``guid`` for one component of one export unit.
 
     The namespace string is frozen verbatim from pyssp_sysml2 v0.3.0
     (``artifacts/fmi.py:183-185``): the ``pyssp_sysml2/`` prefix stays even
     though this package is named differently, so migrating a build from one
     generator to the other does not change a single guid. A direct FMU model
-    has no container level; :class:`ExportIdentity` derives that form.
+    has no container level; ``direct=True`` drops the composition from the key,
+    exactly as :class:`ExportIdentity` derives the modelDescription guid.
     """
-    return _guid(ExportIdentity(composition, False).guid_key(component))
+    return _guid(ExportIdentity(composition, direct).guid_key(component))
 
 
 def _control_float(system: PartDefinition, name: str) -> float | None:
@@ -216,7 +224,8 @@ def generate_model_description(
     ``source`` is an architecture or the path of one (file or directory).
     ``component`` narrows the run to one component and fails when it is not
     exported. ``generation_time`` fixes ``generationDateAndTime``; ``None``
-    stamps the current UTC time, a naive time is refused. ``base_index``
+    stamps the fixed default epoch (2000-01-01T00:00:00Z), so an un-injected
+    build is byte-reproducible, a naive time is refused. ``base_index``
     selects the ``[i]`` suffix base of array variable names (default 0; 1
     targets OMC-built Modelica FMUs).
     """

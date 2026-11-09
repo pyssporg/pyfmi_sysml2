@@ -5,6 +5,8 @@
 
 /* Generated interface for Bus.Bus. Do not edit manually. */
 
+#define BUS_BUS_GUID "{40917e22-10b5-5f7c-b93d-8e8912196dc2}"
+
 typedef enum Bus_Bus_ValueReference {
   BUS_BUS_VR_ACTUATION_CHANNEL_A = 0,
   BUS_BUS_VR_ACTUATION_CHANNEL_B = 1,

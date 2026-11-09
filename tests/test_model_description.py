@@ -22,6 +22,7 @@ from golden_utils import assert_golden_text
 from pyfmi_sysml2.interface import components
 from pyfmi_sysml2.model_description import (
     component_guid,
+    format_generation_time,
     generate_model_description,
     model_description_document,
     render_model_description,
@@ -202,6 +203,22 @@ def test_same_generation_time_is_byte_identical(
     assert [path.read_bytes() for path in first] == [
         path.read_bytes() for path in second
     ]
+
+
+def test_default_generation_time_is_the_fixed_epoch(tmp_path: Path) -> None:
+    """No injected clock: a default build is byte-identical across runs."""
+    first = generate_model_description(
+        fixture_path("sensor", "sensor.sysml"), tmp_path / "first"
+    )
+    second = generate_model_description(
+        fixture_path("sensor", "sensor.sysml"), tmp_path / "second"
+    )
+
+    assert [path.read_bytes() for path in first] == [
+        path.read_bytes() for path in second
+    ]
+    assert 'generationDateAndTime="2000-01-01T00:00:00Z"' in _read(first[0])
+    assert format_generation_time(None) == "2000-01-01T00:00:00Z"
 
 
 def test_another_generation_time_changes_only_the_timestamp(

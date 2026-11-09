@@ -2,7 +2,8 @@
 
 One pair of files is written per architecture: a common header with the port
 payload structs and the value-reference mapping type, and one header per
-component with its value-reference enum and its C++ instance helper.
+component with its FMI guid macro, its value-reference enum and its C++
+instance helper.
 
 The common header is plain C11: it is the part a C simulator may include to
 read the mapping a C++ host filled in. Only the instance helper is C++, because
@@ -28,6 +29,7 @@ from pyfmi_sysml2.interface import (
     resolve_system,
     sanitize_identifier,
 )
+from pyfmi_sysml2.model_description import component_guid
 
 #: Default for a member whose declaration carries no authored start value.
 IMPLICIT_DEFAULT = "{}"
@@ -206,9 +208,20 @@ def interface_common_header(package: str, components: Sequence[Component]) -> st
 
 
 def component_header(
-    package: str, component: Component, *, direct: bool = False
+    package: str,
+    component: Component,
+    *,
+    direct: bool = False,
+    system: str | None = None,
 ) -> str:
-    """Text of the component header (no trailing newline)."""
+    """Text of the component header (no trailing newline).
+
+    ``system`` names the export root that scopes the ``*_GUID`` macro, so the
+    macro matches the guid ``generate_model_description`` writes for the same
+    component. A direct FMU model (``direct=True``) needs none, because its
+    guid key has no container level; without a system the macro falls back to
+    the component name, which is exact for direct models only.
+    """
     stem = header_stem(package, component.name, direct=direct)
     upper = sanitize_identifier(package)
     upper_stem = sanitize_identifier(stem)
@@ -219,6 +232,7 @@ def component_header(
         if direct and package == component.name
         else f"{package}.{component.name}"
     )
+    guid = component_guid(system or component.name, component.name, direct=direct)
     lines = [
         f"#ifndef {guard}",
         f"#define {guard}",
@@ -226,6 +240,8 @@ def component_header(
         f'#include "{common_header_name(package)}"',
         "",
         f"/* Generated interface for {label}. Do not edit manually. */",
+        "",
+        f"#define {upper_stem}_GUID \"{guid}\"",
         "",
         f"typedef enum {stem}_ValueReference {{",
     ]
@@ -289,19 +305,20 @@ def generate_c_headers(
 
     ``prefix`` defaults to the architecture package name and decides the file
     names and the C type names. The returned list starts with the common
-    header, followed by one component header per exported component. A direct
-    FMU model whose definition names the package uses that name once.
+    header, followed by one component header per exported component. Each
+    component header carries a ``<PREFIX>_<COMPONENT>_GUID`` macro with the
+    same guid the modelDescription generator writes for that component. A
+    direct FMU model whose definition names the package uses that name once.
     ``base_index`` shifts the ``[i]`` suffixes of array members in the
     generated C (default 0; 1 targets OMC-built Modelica FMUs).
     """
     architecture = _architecture(source)
     package = prefix or architecture.package_name
+    system = resolve_system(architecture, composition)
     exported = components(
         architecture, composition=composition, base_index=base_index
     )
-    direct = export_identity(
-        architecture, resolve_system(architecture, composition)
-    ).direct
+    direct = export_identity(architecture, system).direct
 
     directory = Path(output_dir)
     directory.mkdir(parents=True, exist_ok=True)
@@ -319,7 +336,10 @@ def generate_c_headers(
             package, item.name, direct=direct
         )
         path.write_text(
-            component_header(package, item, direct=direct), encoding="utf-8"
+            component_header(
+                package, item, direct=direct, system=system.name
+            ),
+            encoding="utf-8",
         )
         written.append(path)
 

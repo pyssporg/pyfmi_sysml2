@@ -5,6 +5,8 @@
 
 /* Generated interface for Sensor.Tank. Do not edit manually. */
 
+#define SENSOR_TANK_GUID "{25dea124-0dbb-5ba3-b000-54cbbd00f846}"
+
 typedef enum Sensor_Tank_ValueReference {
   SENSOR_TANK_VR_CAPACITY = 0,
   SENSOR_TANK_VR_RESERVE = 1,

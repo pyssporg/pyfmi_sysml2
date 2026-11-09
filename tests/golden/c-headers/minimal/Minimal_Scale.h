@@ -5,6 +5,8 @@
 
 /* Generated interface for Minimal.Scale. Do not edit manually. */
 
+#define MINIMAL_SCALE_GUID "{1cd5dff9-41fe-5fdf-abd6-fe39bc507661}"
+
 typedef enum Minimal_Scale_ValueReference {
   MINIMAL_SCALE_VR_GAIN = 0,
   MINIMAL_SCALE_VR_U_VALUE = 1,

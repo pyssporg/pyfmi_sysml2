@@ -5,6 +5,8 @@
 
 /* Generated interface for Generator. Do not edit manually. */
 
+#define GENERATOR_GUID "{eca0627b-dad2-5d71-90b2-e450ef615122}"
+
 typedef enum Generator_ValueReference {
   GENERATOR_VR_GAIN = 0,
   GENERATOR_VR_OFFSET = 1,

@@ -5,6 +5,8 @@
 
 /* Generated interface for Controller.Controller. Do not edit manually. */
 
+#define CONTROLLER_CONTROLLER_GUID "{64044cfb-9f40-5998-99f1-6652e4828def}"
+
 typedef enum Controller_Controller_ValueReference {
   CONTROLLER_CONTROLLER_VR_GAINS_0_ = 0,
   CONTROLLER_CONTROLLER_VR_GAINS_1_ = 1,
