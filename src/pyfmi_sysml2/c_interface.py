@@ -140,7 +140,9 @@ def _parameter_member(component: Component, field: Field) -> str:
 
     elements = [
         _parameter_variable(component, f"{field.name}[{index}]")
-        for index in range(field.array)
+        for index in range(
+            field.base_index, field.base_index + field.array
+        )
     ]
     if any(element is None for element in elements):
         return f"  {storage} {name}[{field.array}] = {IMPLICIT_DEFAULT};"
@@ -281,6 +283,7 @@ def generate_c_headers(
     *,
     composition: str | None = None,
     prefix: str | None = None,
+    base_index: int = 0,
 ) -> list[Path]:
     """Write the C interface headers of ``source`` into ``output_dir``.
 
@@ -288,10 +291,14 @@ def generate_c_headers(
     names and the C type names. The returned list starts with the common
     header, followed by one component header per exported component. A direct
     FMU model whose definition names the package uses that name once.
+    ``base_index`` shifts the ``[i]`` suffixes of array members in the
+    generated C (default 0; 1 targets OMC-built Modelica FMUs).
     """
     architecture = _architecture(source)
     package = prefix or architecture.package_name
-    exported = components(architecture, composition=composition)
+    exported = components(
+        architecture, composition=composition, base_index=base_index
+    )
     direct = export_identity(
         architecture, resolve_system(architecture, composition)
     ).direct

@@ -444,3 +444,21 @@ def test_member_expression_escapes_keywords() -> None:
     assert member_expression("gains[0]") == "gains[0]"
     assert member_expression("p.x") == "p.x"
     assert member_expression("class[1].new") == "class_[1].new_"
+
+
+def test_base_index_one_renames_array_members(tmp_path: Path) -> None:
+    """``base_index=1`` shifts VR enum labels, vr_map members, and defaults."""
+    written = generate_c_headers(
+        _source("controller"),
+        tmp_path,
+        base_index=1,
+    )
+
+    component_text = _text(written[1])
+
+    assert "double gains[2] = {1, 2.5};" in component_text
+    assert "instance->gains[1]" in component_text
+    assert "instance->gains[2]" in component_text
+    assert "_VR_GAINS_1" in component_text
+    assert "_VR_GAINS_2" in component_text
+    assert "gains[0]" not in component_text

@@ -72,6 +72,7 @@ def _run_model_description(args: argparse.Namespace) -> int:
         composition=args.composition,
         component=args.component,
         generation_time=args.generation_time,
+        base_index=args.base_index,
     )
     _print_paths(written)
     return 0
@@ -83,6 +84,7 @@ def _run_c_headers(args: argparse.Namespace) -> int:
         args.output,
         composition=args.composition,
         prefix=args.prefix,
+        base_index=args.base_index,
     )
     _print_paths(written)
     return 0
@@ -147,6 +149,19 @@ def _add_composition(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_base_index(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--base-index",
+        metavar="N",
+        type=int,
+        default=0,
+        help=(
+            "First emitted array index (default: 0; 1 targets OMC-built "
+            "Modelica FMUs, which declare arrays one-based)."
+        ),
+    )
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pyfmi",
@@ -175,6 +190,7 @@ def _parser() -> argparse.ArgumentParser:
         description, "Output directory (default: build)."
     )
     _add_composition(description)
+    _add_base_index(description)
     description.add_argument(
         "--component",
         metavar="NAME",
@@ -199,6 +215,7 @@ def _parser() -> argparse.ArgumentParser:
     _add_source(headers)
     _add_output(headers, "Output directory (default: build).")
     _add_composition(headers)
+    _add_base_index(headers)
     headers.add_argument(
         "--prefix",
         metavar="NAME",

@@ -115,8 +115,11 @@ def _select_component(
     name: str,
     *,
     composition: str | None,
+    base_index: int = 0,
 ) -> Component:
-    for candidate in components(architecture, composition=composition):
+    for candidate in components(
+        architecture, composition=composition, base_index=base_index
+    ):
         if candidate.name == name:
             return candidate
     raise ValueError(f"No exported component named {name!r}")
@@ -128,10 +131,17 @@ def model_description_document(
     *,
     composition: str | None = None,
     generation_time: datetime | None = None,
+    base_index: int = 0,
 ) -> Fmi2ModelDescriptionDocument:
-    """The FMI 2.0 document for one component, before serialization."""
+    """The FMI 2.0 document for one component, before serialization.
+
+    ``base_index`` selects the ``[i]`` suffix base of array variable names
+    (default 0; 1 targets OMC-built Modelica FMUs).
+    """
     if isinstance(component, str):
-        component = _select_component(architecture, component, composition=composition)
+        component = _select_component(
+            architecture, component, composition=composition, base_index=base_index
+        )
     system = resolve_system(architecture, composition)
     identity = export_identity(architecture, system)
 
@@ -177,6 +187,7 @@ def render_model_description(
     *,
     composition: str | None = None,
     generation_time: datetime | None = None,
+    base_index: int = 0,
 ) -> str:
     """Serialize and validate one component's model description."""
     document = model_description_document(
@@ -184,6 +195,7 @@ def render_model_description(
         component,
         composition=composition,
         generation_time=generation_time,
+        base_index=base_index,
     )
     xml = Fmi2ModelDescriptionXmlCodec().serialize(document)
     Fmi2ModelDescriptionValidator().validate(document, xml)
@@ -197,13 +209,16 @@ def generate_model_description(
     composition: str | None = None,
     component: str | None = None,
     generation_time: datetime | None = None,
+    base_index: int = 0,
 ) -> list[Path]:
     """Write ``<output_dir>/<Component>/modelDescription.xml`` per leaf.
 
     ``source`` is an architecture or the path of one (file or directory).
     ``component`` narrows the run to one component and fails when it is not
     exported. ``generation_time`` fixes ``generationDateAndTime``; ``None``
-    stamps the current UTC time, a naive time is refused.
+    stamps the current UTC time, a naive time is refused. ``base_index``
+    selects the ``[i]`` suffix base of array variable names (default 0; 1
+    targets OMC-built Modelica FMUs).
     """
     architecture = (
         source
@@ -213,7 +228,9 @@ def generate_model_description(
     if generation_time is not None:
         format_generation_time(generation_time)
 
-    selected = components(architecture, composition=composition)
+    selected = components(
+        architecture, composition=composition, base_index=base_index
+    )
     if component is not None:
         selected = [
             candidate for candidate in selected if candidate.name == component

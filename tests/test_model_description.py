@@ -144,6 +144,24 @@ APPLIED_SET_MODEL = """package Applied {
 """
 
 
+#: A port payload with a fixed-length array field, for index-base coverage.
+ARRAY_PORT_MODEL = """package ArrayPort {
+  port def Signal {
+    attribute value : Real[2];
+  }
+
+  part def Widget {
+    in port u : Signal;
+    out port y : Signal;
+  }
+
+  part def ArrayPortComposition {
+    part widget : Widget;
+  }
+}
+"""
+
+
 def _write_model(directory: Path, text: str) -> Path:
     path = directory / "model.sysml"
     path.write_text(text, encoding="utf-8")
@@ -321,6 +339,39 @@ def test_interface_default_wins_over_an_applied_parameter_set(
     assert [(variable.name, variable.start) for variable in document.parameters] == [
         ("gains[0]", 1.0),
         ("gains[1]", 2.5),
+    ]
+
+
+def test_base_index_one_renames_array_variables(tmp_path: Path) -> None:
+    """``base_index=1`` shifts ``[0]``/``[1]`` to ``[1]``/``[2]`` in the XML."""
+    [path] = generate_model_description(
+        fixture_path("controller", "controller.sysml"),
+        tmp_path / "out",
+        generation_time=GENERATION_TIME,
+        base_index=1,
+    )
+
+    document = CODEC.parse(_read(path))
+
+    assert [variable.name for variable in document.parameters] == [
+        "gains[1]",
+        "gains[2]",
+        "label",
+    ]
+    assert "gains[0]" not in _read(path)
+
+
+def test_base_index_threads_through_port_array_members(tmp_path: Path) -> None:
+    """The base reaches port payload fields, not only parameters."""
+    architecture = pycps_sysml2.load(_write_model(tmp_path, ARRAY_PORT_MODEL))
+
+    [component] = components(architecture, base_index=1)
+
+    assert [variable.name for variable in component.variables] == [
+        "u.value[1]",
+        "u.value[2]",
+        "y.value[1]",
+        "y.value[2]",
     ]
 
 

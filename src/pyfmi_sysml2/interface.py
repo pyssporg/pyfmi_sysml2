@@ -8,7 +8,9 @@ disagree about *which* variables exist. The reduction follows the
 - parameters come from the parameter dialect only (``in port parameters ...``),
   never from flat part attributes, and keep their interface defaults;
 - a parameter list is expanded into one scalar per element, named
-  ``<name>[<index>]``, zero-based;
+  ``<name>[<index>]``; the index base is configurable through ``base_index``
+  (0 by default, 1 targets OMC-built Modelica FMUs, which declare arrays
+  one-based);
 - port fields are named ``<port>.<field>`` and expanded the same way;
 - value references restart at 0 for every component, parameters first, then
   ports in declaration order and fields in declaration order.
@@ -103,17 +105,26 @@ def direction_causality(direction: str | None) -> str:
 
 @dataclass(frozen=True)
 class Field:
-    """One declared member: a scalar, or a fixed-length array."""
+    """One declared member: a scalar, or a fixed-length array.
+
+    ``base_index`` shifts the emitted ``[i]`` suffixes; the default 0 keeps the
+    FMI 0-based convention, 1 targets OMC-built Modelica FMUs.
+    """
 
     name: str
     type_name: str
     array: int | None = None
+    base_index: int = 0
 
     def members(self) -> list[tuple[str, str]]:
         """``(fmi_suffix, member_expression)`` for every element."""
         if self.array is None:
             return [("", self.name)]
-        return [(f"[{i}]", f"{self.name}[{i}]") for i in range(self.array)]
+        start = self.base_index
+        return [
+            (f"[{i}]", f"{self.name}[{i}]")
+            for i in range(start, start + self.array)
+        ]
 
 
 @dataclass(frozen=True)
@@ -218,19 +229,26 @@ def _is_signal_port(architecture: Architecture, part_def: PartDefinition) -> boo
 
 
 def component_interface(
-    architecture: Architecture, part_def: PartDefinition
+    architecture: Architecture,
+    part_def: PartDefinition,
+    *,
+    base_index: int = 0,
 ) -> Component:
-    """Build the FMI interface of one leaf part definition."""
+    """Build the FMI interface of one leaf part definition.
+
+    ``base_index`` shifts the ``[i]`` suffixes of every array member; the
+    default 0 keeps the FMI convention, 1 targets OMC-built Modelica FMUs.
+    """
     parameters: list[Field] = []
     variables: list[Variable] = []
     counter = 0
 
     for attribute in parameter_declarations(architecture, part_def):
         type_name = _field_dtype(attribute)
-        items = parameter_items(attribute)
+        items = parameter_items(attribute, base_index=base_index)
         count = len(items)
         array = count if count > 1 or attribute.multiplicity else None
-        parameters.append(Field(attribute.name, type_name, array))
+        parameters.append(Field(attribute.name, type_name, array, base_index))
         for item in items:
             counter += 1
             variables.append(
@@ -273,7 +291,7 @@ def component_interface(
                 continue
             type_name = _field_dtype(attribute)
             array = _fixed_count(attribute.multiplicity, attribute.value)
-            fields.append(Field(attribute.name, type_name, array))
+            fields.append(Field(attribute.name, type_name, array, base_index))
             for suffix, member in fields[-1].members():
                 counter += 1
                 variables.append(
@@ -396,13 +414,15 @@ def components(
     architecture: Architecture,
     *,
     composition: str | None = None,
+    base_index: int = 0,
 ) -> list[Component]:
     """Every exported component, sorted by name.
 
     A composition that is itself the FMU model exports that definition as its
     single component; a container root exports its leaf descendants. The
     parameter dialect is validated first, so a flat parameter attribute is
-    reported instead of silently dropped.
+    reported instead of silently dropped. ``base_index`` is forwarded to each
+    component's interface.
     """
     system = resolve_system(architecture, composition)
     validate_parameter_dialect(architecture, system, policy=SSP_POLICY)
@@ -418,7 +438,7 @@ def components(
             if not definition.parts
         ]
     return [
-        component_interface(architecture, definition)
+        component_interface(architecture, definition, base_index=base_index)
         for definition in definitions
     ]
 
@@ -428,9 +448,12 @@ def component(
     name: str,
     *,
     composition: str | None = None,
+    base_index: int = 0,
 ) -> Component:
     """One named exported component."""
-    for candidate in components(architecture, composition=composition):
+    for candidate in components(
+        architecture, composition=composition, base_index=base_index
+    ):
         if candidate.name == name:
             return candidate
     raise KeyError(f"No exported component named {name!r}")
